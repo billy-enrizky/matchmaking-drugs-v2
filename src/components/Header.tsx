@@ -1,11 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { PlusCircle, Pill, Package, MessageCircle, LogOut } from 'lucide-react';
+import { PlusCircle, Pill, Package, LogOut, UserCircle } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 
 export const Header: React.FC = () => {
   const location = useLocation();
-  const { hospital, isAuthenticated, logout } = useAuthStore();
+  const { user, hospital, isAuthenticated, logout } = useAuthStore();
 
   return (
     <header className="bg-white shadow-sm">
@@ -60,22 +60,14 @@ export const Header: React.FC = () => {
               >
                 <span>My Offers</span>
               </Link>
-              <Link 
-                to="/messaging" 
-                className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  location.pathname.includes('/messaging') 
-                    ? 'text-blue-700 bg-blue-50' 
-                    : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
-                }`}
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span>Messages</span>
-              </Link>
             </nav>
             
             <div className="flex items-center gap-3">
-              <div className="text-sm font-medium text-gray-700">
-                {hospital?.name}
+              <div className="flex items-center gap-2">
+                <UserCircle className="h-5 w-5 text-blue-600" />
+                <div className="text-sm font-medium text-gray-700">
+                  {hospital?.name || user?.email}
+                </div>
               </div>
               <button 
                 onClick={logout}
@@ -87,14 +79,24 @@ export const Header: React.FC = () => {
             </div>
           </div>
         ) : (
-          location.pathname !== '/account-setup' && (
-            <Link
-              to="/account-setup"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
-            >
-              Register Hospital
-            </Link>
-          )
+          <div className="flex items-center gap-4">
+            {location.pathname !== '/login' && location.pathname !== '/account-setup' && (
+              <>
+                <Link
+                  to="/login"
+                  className="px-4 py-2 text-gray-700 hover:text-blue-600 text-sm font-medium transition-colors"
+                >
+                  Log In
+                </Link>
+                <Link
+                  to="/account-setup"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
+          </div>
         )}
       </div>
     </header>

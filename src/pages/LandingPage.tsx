@@ -165,11 +165,11 @@ export const LandingPage: React.FC = () => {
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
             Start exchanging medications with other hospitals in your area.
-            Register your hospital to get started.
+            Create an account to get started.
           </p>
           <Link to="/account-setup">
             <Button variant="primary" size="lg">
-              Register Your Hospital
+              Sign Up
             </Button>
           </Link>
         </div>
