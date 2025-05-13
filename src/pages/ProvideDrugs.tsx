@@ -41,24 +41,33 @@ export const ProvideDrugs: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [csvError, setCsvError] = useState<string | null>(null);
   
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<OfferFormData>({
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<OfferFormData>({
     defaultValues: {
       maxDistance: 25, // Default to 25km
     }
   });
+
+  const watchDrugName = watch('drugName');
   
-  const onAddDrug: SubmitHandler<OfferFormData> = (data) => {
-    const { drugName, din, dosage, expiryDate } = data;
+  const onAddDrug = (e: React.FormEvent) => {
+    e.preventDefault();
+    const drugName = watch('drugName');
+    const din = watch('din');
+    const dosage = watch('dosage');
+    const expiryDate = watch('expiryDate');
+
+    if (!drugName) return;
+
     setDrugList([...drugList, { drugName, din, dosage, expiryDate }]);
     reset({
       drugName: '',
       din: '',
       dosage: '',
       expiryDate: '',
-      city: data.city,
-      state: data.state,
-      zipCode: data.zipCode,
-      maxDistance: data.maxDistance
+      city: watch('city'),
+      state: watch('state'),
+      zipCode: watch('zipCode'),
+      maxDistance: watch('maxDistance')
     });
   };
   
@@ -118,7 +127,6 @@ export const ProvideDrugs: React.FC = () => {
     
     setIsSubmitting(true);
     
-    // Here you would normally send the data to your API
     const offerData = {
       drugs: drugList,
       location: {
@@ -153,13 +161,12 @@ export const ProvideDrugs: React.FC = () => {
           <Card>
             <h2 className="text-xl font-semibold mb-4">Add Available Medications</h2>
             
-            <form onSubmit={handleSubmit(onAddDrug)} className="space-y-4">
+            <form onSubmit={onAddDrug} className="space-y-4">
               <Input
                 id="drugName"
                 label="Drug Name"
                 placeholder="Enter drug name"
-                {...register('drugName', { required: 'Drug name is required' })}
-                error={errors.drugName?.message}
+                {...register('drugName')}
               />
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -239,6 +246,7 @@ export const ProvideDrugs: React.FC = () => {
                 type="submit"
                 leftIcon={<Plus size={16} />}
                 fullWidth
+                disabled={!watchDrugName}
               >
                 Add Medication
               </Button>
