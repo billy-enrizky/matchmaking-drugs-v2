@@ -39,23 +39,31 @@ export const RequestDrugs: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [csvError, setCsvError] = useState<string | null>(null);
   
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<RequestFormData>({
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<RequestFormData>({
     defaultValues: {
       maxDistance: 25, // Default to 25km
     }
   });
+
+  const watchDrugName = watch('drugName');
   
-  const onAddDrug: SubmitHandler<RequestFormData> = (data) => {
-    const { drugName, din, dosage } = data;
+  const onAddDrug = (e: React.FormEvent) => {
+    e.preventDefault();
+    const drugName = watch('drugName');
+    const din = watch('din');
+    const dosage = watch('dosage');
+
+    if (!drugName) return;
+
     setDrugList([...drugList, { drugName, din, dosage }]);
     reset({ 
       drugName: '', 
       din: '', 
       dosage: '',
-      city: data.city,
-      state: data.state,
-      zipCode: data.zipCode,
-      maxDistance: data.maxDistance
+      city: watch('city'),
+      state: watch('state'),
+      zipCode: watch('zipCode'),
+      maxDistance: watch('maxDistance')
     });
   };
   
@@ -114,7 +122,6 @@ export const RequestDrugs: React.FC = () => {
     
     setIsSubmitting(true);
     
-    // Here you would normally send the data to your API
     const requestData = {
       drugs: drugList,
       location: {
@@ -148,13 +155,12 @@ export const RequestDrugs: React.FC = () => {
           <Card>
             <h2 className="text-xl font-semibold mb-4">Add Medications</h2>
             
-            <form onSubmit={handleSubmit(onAddDrug)} className="space-y-4">
+            <form onSubmit={onAddDrug} className="space-y-4">
               <Input
                 id="drugName"
                 label="Drug Name"
                 placeholder="Enter drug name"
-                {...register('drugName', { required: 'Drug name is required' })}
-                error={errors.drugName?.message}
+                {...register('drugName')}
               />
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -226,6 +232,7 @@ export const RequestDrugs: React.FC = () => {
                 type="submit"
                 leftIcon={<Plus size={16} />}
                 fullWidth
+                disabled={!watchDrugName}
               >
                 Add Medication
               </Button>
