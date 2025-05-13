@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { Plus, Upload, AlertCircle, X } from 'lucide-react';
+import { Plus, Upload, AlertCircle, X, MapPin } from 'lucide-react';
 import Papa from 'papaparse';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -11,6 +11,10 @@ type RequestFormData = {
   drugName: string;
   din?: string;
   dosage?: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  maxDistance: number;
 };
 
 interface DrugEntry {
@@ -20,17 +24,39 @@ interface DrugEntry {
   error?: string;
 }
 
+const distanceOptions = [
+  { value: 5, label: 'Within 5 km' },
+  { value: 10, label: 'Within 10 km' },
+  { value: 25, label: 'Within 25 km' },
+  { value: 50, label: 'Within 50 km' },
+  { value: 100, label: 'Within 100 km' },
+  { value: 200, label: 'Within 200 km' },
+];
+
 export const RequestDrugs: React.FC = () => {
   const navigate = useNavigate();
   const [drugList, setDrugList] = useState<DrugEntry[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [csvError, setCsvError] = useState<string | null>(null);
   
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<RequestFormData>();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<RequestFormData>({
+    defaultValues: {
+      maxDistance: 25, // Default to 25km
+    }
+  });
   
   const onAddDrug: SubmitHandler<RequestFormData> = (data) => {
-    setDrugList([...drugList, data]);
-    reset();
+    const { drugName, din, dosage } = data;
+    setDrugList([...drugList, { drugName, din, dosage }]);
+    reset({ 
+      drugName: '', 
+      din: '', 
+      dosage: '',
+      city: data.city,
+      state: data.state,
+      zipCode: data.zipCode,
+      maxDistance: data.maxDistance
+    });
   };
   
   const removeDrug = (index: number) => {
@@ -80,18 +106,27 @@ export const RequestDrugs: React.FC = () => {
       }
     });
     
-    // Reset the file input
     event.target.value = '';
   };
   
-  const handleSubmitRequest = async () => {
-    if (drugList.length === 0) {
-      return;
-    }
+  const handleSubmitRequest = async (data: RequestFormData) => {
+    if (drugList.length === 0) return;
     
     setIsSubmitting(true);
     
     // Here you would normally send the data to your API
+    const requestData = {
+      drugs: drugList,
+      location: {
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+      },
+      maxDistance: data.maxDistance,
+    };
+    
+    console.log('Submitting request:', requestData);
+    
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     setIsSubmitting(false);
@@ -136,6 +171,55 @@ export const RequestDrugs: React.FC = () => {
                   placeholder="e.g., 10mg, 25mL"
                   {...register('dosage')}
                 />
+              </div>
+              
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <h3 className="text-lg font-medium mb-4">Delivery Location</h3>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <Input
+                    id="city"
+                    label="City"
+                    placeholder="Enter city"
+                    leftIcon={<MapPin size={16} />}
+                    {...register('city', { required: 'City is required' })}
+                    error={errors.city?.message}
+                  />
+                  
+                  <Input
+                    id="state"
+                    label="State/Province"
+                    placeholder="Enter state"
+                    {...register('state', { required: 'State is required' })}
+                    error={errors.state?.message}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    id="zipCode"
+                    label="ZIP/Postal Code"
+                    placeholder="Enter ZIP code"
+                    {...register('zipCode', { required: 'ZIP code is required' })}
+                    error={errors.zipCode?.message}
+                  />
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Maximum Distance
+                    </label>
+                    <select
+                      {...register('maxDistance')}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    >
+                      {distanceOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
               
               <Button
@@ -194,7 +278,7 @@ export const RequestDrugs: React.FC = () => {
                 {drugList.map((drug, index) => (
                   <div 
                     key={index} 
-                    className={`px-3 py-2 rounded-md border flex justify-between items-center ${
+                    className={`px-3 py-2 rounded-md border flex justify-between items-start ${
                       drug.error ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'
                     }`}
                   >
@@ -224,15 +308,17 @@ export const RequestDrugs: React.FC = () => {
               </div>
             )}
             
-            <Button
-              onClick={handleSubmitRequest}
-              variant="primary"
-              isLoading={isSubmitting}
-              disabled={drugList.length === 0}
-              fullWidth
-            >
-              Submit Request
-            </Button>
+            <form onSubmit={handleSubmit(handleSubmitRequest)}>
+              <Button
+                type="submit"
+                variant="primary"
+                isLoading={isSubmitting}
+                disabled={drugList.length === 0}
+                fullWidth
+              >
+                Submit Request
+              </Button>
+            </form>
           </Card>
         </div>
       </div>

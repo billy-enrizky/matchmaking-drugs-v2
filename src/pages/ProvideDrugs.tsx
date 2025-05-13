@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { Plus, Upload, AlertCircle, X, Calendar } from 'lucide-react';
+import { Plus, Upload, AlertCircle, X, Calendar, MapPin } from 'lucide-react';
 import Papa from 'papaparse';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -12,6 +12,10 @@ type OfferFormData = {
   din?: string;
   dosage?: string;
   expiryDate?: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  maxDistance: number;
 };
 
 interface DrugEntry {
@@ -22,17 +26,40 @@ interface DrugEntry {
   error?: string;
 }
 
+const distanceOptions = [
+  { value: 5, label: 'Within 5 km' },
+  { value: 10, label: 'Within 10 km' },
+  { value: 25, label: 'Within 25 km' },
+  { value: 50, label: 'Within 50 km' },
+  { value: 100, label: 'Within 100 km' },
+  { value: 200, label: 'Within 200 km' },
+];
+
 export const ProvideDrugs: React.FC = () => {
   const navigate = useNavigate();
   const [drugList, setDrugList] = useState<DrugEntry[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [csvError, setCsvError] = useState<string | null>(null);
   
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<OfferFormData>();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<OfferFormData>({
+    defaultValues: {
+      maxDistance: 25, // Default to 25km
+    }
+  });
   
   const onAddDrug: SubmitHandler<OfferFormData> = (data) => {
-    setDrugList([...drugList, data]);
-    reset();
+    const { drugName, din, dosage, expiryDate } = data;
+    setDrugList([...drugList, { drugName, din, dosage, expiryDate }]);
+    reset({
+      drugName: '',
+      din: '',
+      dosage: '',
+      expiryDate: '',
+      city: data.city,
+      state: data.state,
+      zipCode: data.zipCode,
+      maxDistance: data.maxDistance
+    });
   };
   
   const removeDrug = (index: number) => {
@@ -83,18 +110,27 @@ export const ProvideDrugs: React.FC = () => {
       }
     });
     
-    // Reset the file input
     event.target.value = '';
   };
   
-  const handleSubmitOffer = async () => {
-    if (drugList.length === 0) {
-      return;
-    }
+  const handleSubmitOffer = async (data: OfferFormData) => {
+    if (drugList.length === 0) return;
     
     setIsSubmitting(true);
     
     // Here you would normally send the data to your API
+    const offerData = {
+      drugs: drugList,
+      location: {
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+      },
+      maxDistance: data.maxDistance,
+    };
+    
+    console.log('Submitting offer:', offerData);
+    
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     setIsSubmitting(false);
@@ -149,6 +185,55 @@ export const ProvideDrugs: React.FC = () => {
                 rightIcon={<Calendar size={16} />}
                 {...register('expiryDate')}
               />
+              
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <h3 className="text-lg font-medium mb-4">Delivery Range</h3>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <Input
+                    id="city"
+                    label="City"
+                    placeholder="Enter city"
+                    leftIcon={<MapPin size={16} />}
+                    {...register('city', { required: 'City is required' })}
+                    error={errors.city?.message}
+                  />
+                  
+                  <Input
+                    id="state"
+                    label="State/Province"
+                    placeholder="Enter state"
+                    {...register('state', { required: 'State is required' })}
+                    error={errors.state?.message}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    id="zipCode"
+                    label="ZIP/Postal Code"
+                    placeholder="Enter ZIP code"
+                    {...register('zipCode', { required: 'ZIP code is required' })}
+                    error={errors.zipCode?.message}
+                  />
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Maximum Delivery Distance
+                    </label>
+                    <select
+                      {...register('maxDistance')}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    >
+                      {distanceOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
               
               <Button
                 type="submit"
@@ -242,15 +327,17 @@ export const ProvideDrugs: React.FC = () => {
               </div>
             )}
             
-            <Button
-              onClick={handleSubmitOffer}
-              variant="primary"
-              isLoading={isSubmitting}
-              disabled={drugList.length === 0}
-              fullWidth
-            >
-              Submit Offer
-            </Button>
+            <form onSubmit={handleSubmit(handleSubmitOffer)}>
+              <Button
+                type="submit"
+                variant="primary"
+                isLoading={isSubmitting}
+                disabled={drugList.length === 0}
+                fullWidth
+              >
+                Submit Offer
+              </Button>
+            </form>
           </Card>
         </div>
       </div>
