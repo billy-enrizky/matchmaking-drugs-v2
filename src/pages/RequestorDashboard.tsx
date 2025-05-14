@@ -284,7 +284,7 @@ export const RequestorDashboard: React.FC = () => {
                   </dl>
                   
                   <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:justify-end">
-                    {match.status !== 'agreed' && match.status !== 'completed' && (
+                    {match.status === 'pending' && (
                       <Button
                         variant="success"
                         leftIcon={<ThumbsUp size={16} />}
